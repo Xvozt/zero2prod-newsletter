@@ -1,7 +1,14 @@
 [package]
-name = "zero-to-production-email-newsletter"
+name = "zero2prod-newsletter"
 version = "0.1.0"
 edition = "2024"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "zero2prod-newsletter"
 
 [dependencies]
 actix-web = "4.11.0"

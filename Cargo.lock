@@ -1415,7 +1415,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "zero-to-production-email-newsletter"
+name = "zero2prod-newsletter"
 version = "0.1.0"
 dependencies = [
  "actix-web",
