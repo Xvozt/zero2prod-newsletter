@@ -2,7 +2,7 @@ use reqwest;
 use sqlx::{Connection, PgConnection};
 use sqlx::{Executor, PgPool};
 use std::net::TcpListener;
-use uuid::{self, Uuid};
+use uuid::{Uuid};
 use zero2prod_newsletter::configuration::{DatabaseSettings, get_config};
 use zero2prod_newsletter::startup;
 
@@ -73,7 +73,7 @@ async fn subscribe_should_return_200_for_valid_form_data() {
     //Assert
     assert_eq!(200, response.status().as_u16());
     let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
-        .fetch_one(&mut connection)
+        .fetch_one(&app.db_pool)
         .await
         .expect("Failed to fetch saved subscriptions");
 
