@@ -1,8 +1,9 @@
 use reqwest;
-use sqlx::PgPool;
 use sqlx::{Connection, PgConnection};
+use sqlx::{Executor, PgPool};
 use std::net::TcpListener;
-use zero2prod_newsletter::configuration::get_config;
+use uuid::{self, Uuid};
+use zero2prod_newsletter::configuration::{DatabaseSettings, get_config};
 use zero2prod_newsletter::startup;
 
 pub struct TestApp {
@@ -10,14 +11,37 @@ pub struct TestApp {
     pub db_pool: PgPool,
 }
 
+async fn configure_database(configuration: &DatabaseSettings) -> PgPool {
+    // create db
+    let mut connection = PgConnection::connect(&configuration.connection_string_without_db())
+        .await
+        .expect("Failed to connect to Postgres");
+    connection
+        .execute(format!(r#"CREATE DATABASE "{}";"#, configuration.db_name).as_str())
+        .await
+        .expect("Failed to create database");
+
+    // migrate database
+    let connection_pool = PgPool::connect(&configuration.connection_string())
+        .await
+        .expect("Failed to connect to Postgres");
+
+    sqlx::migrate!("./migrations")
+        .run(&connection_pool)
+        .await
+        .expect("Failed to migrate the database");
+
+    connection_pool
+}
+
 async fn spawn_app() -> TestApp {
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{}", port);
-    let configuration = get_config().expect("Failed to get configuration");
-    let connection_pool = PgPool::connect(&configuration.database.connection_string())
-        .await
-        .expect("Failed to connect to a Postgres database");
+    let mut configuration = get_config().expect("Failed to get configuration");
+    configuration.database.db_name = Uuid::new_v4().to_string();
+
+    let connection_pool = configure_database(&configuration.database).await;
     let server = startup::run(listener, connection_pool.clone()).expect("Failed to bind address");
     let _ = tokio::spawn(server);
     TestApp {

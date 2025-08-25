@@ -16,7 +16,10 @@ pub struct DatabaseSettings {
 
 pub fn get_config() -> Result<Settings, config::ConfigError> {
     let settings = config::Config::builder()
-        .add_source(config::File::new("config/settings", config::FileFormat::Yaml))
+        .add_source(config::File::new(
+            "config/settings",
+            config::FileFormat::Yaml,
+        ))
         .build()?;
 
     settings.try_deserialize()
@@ -24,6 +27,16 @@ pub fn get_config() -> Result<Settings, config::ConfigError> {
 
 impl DatabaseSettings {
     pub fn connection_string(&self) -> String {
-        format!("postgres://{}:{}@{}:{}/{}", self.username, self.password, self.host, self.port, self.db_name)
+        format!(
+            "postgres://{}:{}@{}:{}/{}",
+            self.username, self.password, self.host, self.port, self.db_name
+        )
+    }
+
+    pub fn connection_string_without_db(&self) -> String {
+        format!(
+            "postgres://{}:{}@{}:{}",
+            self.username, self.password, self.host, self.port
+        )
     }
 }
