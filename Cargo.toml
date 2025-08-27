@@ -17,14 +17,16 @@ reqwest = "0.12.23"
 serde = { version = "1.0.219", features = ["derive"] }
 config = "0.15.14"
 chrono = "0.4.41"
-env_logger = "0.11.8"
-log = "0.4.27"
-tracing = { version = "0.1.41", feature = ["log"] }
+tracing = { version = "0.1.41" }
+tracing-log = "0.2.0"
+tracing-subscriber = { version = "0.3.19", features = [
+    "registry",
+    "env-filter",
+] }
+tracing-bunyan-formatter = "0.3.10"
 [dependencies.uuid]
 version = "1.18.0"
-features = [
-    "v4",
-]
+features = ["v4"]
 
 [dependencies.sqlx]
 version = "0.8.6"
@@ -35,5 +37,5 @@ features = [
     "postgres",
     "uuid",
     "chrono",
-    "migrate"
+    "migrate",
 ]

@@ -53,11 +53,6 @@ async fn spawn_app() -> TestApp {
 async fn subscribe_should_return_200_for_valid_form_data() {
     //Arrange
     let app = spawn_app().await;
-    let configuration = get_config().expect("Failed to read config");
-    let connection_string = configuration.database.connection_string();
-    let mut connection = PgConnection::connect(&connection_string)
-        .await
-        .expect("Failed to connect to Postgres");
     let client = reqwest::Client::new();
 
     //Act
