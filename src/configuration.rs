@@ -1,10 +1,10 @@
-use config;
+use config::{self,Config, File, FileFormat};
 use secrecy::{ExposeSecret, SecretBox, SecretString};
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
     pub database: DatabaseSettings,
-    pub app_port: u16,
+    pub application: ApplicationSettings,
 }
 #[derive(serde::Deserialize)]
 pub struct DatabaseSettings {
@@ -14,16 +14,80 @@ pub struct DatabaseSettings {
     pub host: String,
     pub db_name: String,
 }
+#[derive(serde::Deserialize)]
+pub struct ApplicationSettings {
+    pub port: u16,
+    pub host: String,
+}
+
+pub enum Environment {
+    Local,
+    Production,
+}
+
+impl Environment {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Environment::Local => "local",
+            Environment::Production => "production",
+        }
+    }
+}
+
+impl TryFrom<String> for Environment {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "local" => Ok(Self::Local),
+            "production" => Ok(Self::Production),
+            other => Err(format!(
+                "{} is not supported environment. Use either `local` or `production`.",
+                other
+            )),
+        }
+    }
+}
 
 pub fn get_config() -> Result<Settings, config::ConfigError> {
-    let settings = config::Config::builder()
-        .add_source(config::File::new(
-            "config/settings",
-            config::FileFormat::Yaml,
-        ))
-        .build()?;
+    let base_path = std::env::current_dir().expect("Failed to determine the current directory");
+    let config_dir = base_path.join("config");
 
+    // define environment
+    let environment: Environment = std::env::var("APP_ENVIRONMENT")
+        .unwrap_or_else(|_| "local".into())
+        .try_into()
+        .expect("Failed to parse APP_ENVIRONMENT");
+
+    let settings = Config::builder()
+        .add_source(File::new(
+            config_dir.join("base").to_str().unwrap(),
+            FileFormat::Yaml
+        ))
+        .add_source(File::new(
+            config_dir.join(environment.as_str()).to_str().unwrap(),
+            FileFormat::Yaml,
+        ))
+        .add_source(
+            config::Environment::with_prefix("APP")
+                .prefix_separator("_")
+                .separator("__"),
+        )
+        .build()?;
     settings.try_deserialize()
+
+
+    // Read the default config file
+    // settings = settings.add_source(File::new(config_dir.join("base").to_str.unwrap(), FileFormat::Yaml));
+
+    // let settings = config::Config::builder()
+    //     .add_source(config::File::new(
+    //         "config/settings",
+    //         config::FileFormat::Yaml,
+    //     ))
+    //     .build()?;
+    // settings = settings.add_source()
+    // settings.try_deserialize()
 }
 
 impl DatabaseSettings {
