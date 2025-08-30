@@ -3,6 +3,7 @@ use sqlx::{Connection, PgConnection};
 use sqlx::{Executor, PgPool};
 use std::net::TcpListener;
 use once_cell::sync::Lazy;
+use secrecy::ExposeSecret;
 use uuid::{Uuid};
 use zero2prod_newsletter::configuration::{DatabaseSettings, get_config};
 use zero2prod_newsletter::startup;
@@ -29,7 +30,7 @@ pub struct TestApp {
 
 async fn configure_database(configuration: &DatabaseSettings) -> PgPool {
     // create db
-    let mut connection = PgConnection::connect(&configuration.connection_string_without_db())
+    let mut connection = PgConnection::connect(&configuration.connection_string_without_db().expose_secret())
         .await
         .expect("Failed to connect to Postgres");
     connection
@@ -38,7 +39,7 @@ async fn configure_database(configuration: &DatabaseSettings) -> PgPool {
         .expect("Failed to create database");
 
     // migrate database
-    let connection_pool = PgPool::connect(&configuration.connection_string())
+    let connection_pool = PgPool::connect(&configuration.connection_string().expose_secret())
         .await
         .expect("Failed to connect to Postgres");
 
