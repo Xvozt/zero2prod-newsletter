@@ -75,19 +75,7 @@ pub fn get_config() -> Result<Settings, config::ConfigError> {
         )
         .build()?;
     settings.try_deserialize()
-
-
-    // Read the default config file
-    // settings = settings.add_source(File::new(config_dir.join("base").to_str.unwrap(), FileFormat::Yaml));
-
-    // let settings = config::Config::builder()
-    //     .add_source(config::File::new(
-    //         "config/settings",
-    //         config::FileFormat::Yaml,
-    //     ))
-    //     .build()?;
-    // settings = settings.add_source()
-    // settings.try_deserialize()
+    
 }
 
 impl DatabaseSettings {
