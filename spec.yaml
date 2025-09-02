@@ -27,7 +27,7 @@
           value: ${newsletter.HOST}
         - key: APP_DATABASE__PORT
           scope: RUN_TIME
-          value: "${newsletter.PORT}"
+          value: ${newsletter.PORT}
         - key: APP_DATABASE__DB_NAME
           scope: RUN_TIME
           value: ${newsletter.DATABASE}
