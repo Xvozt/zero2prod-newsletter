@@ -15,3 +15,8 @@
       instance_size_slug: basic-xxs
       routes:
         - path: /
+  databases:
+    - name: newsletter
+      engine: PG
+      version: "13"
+      production: false
