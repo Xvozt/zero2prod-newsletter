@@ -10,6 +10,9 @@ async fn main() -> std::io::Result<()> {
     telemetry::init_subscriber(subscriber);
 
     let configuration = get_config().expect("Failed to read configuration");
+    // Добавьте эту строку для отладки
+    tracing::info!("Database URL: {}:{}/{}", configuration.database.host, configuration.database.port, configuration.database.db_name);
+
 
     let connection_pool = PgPoolOptions::new()
         .acquire_timeout(std::time::Duration::from_secs(2))
