@@ -1,5 +1,7 @@
 use config::{self,Config, File, FileFormat};
 use secrecy::{ExposeSecret, SecretBox, SecretString};
+use serde_aux::prelude::deserialize_number_from_string;
+
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
@@ -10,12 +12,14 @@ pub struct Settings {
 pub struct DatabaseSettings {
     pub username: String,
     pub password: SecretString,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub host: String,
     pub db_name: String,
 }
 #[derive(serde::Deserialize)]
 pub struct ApplicationSettings {
+    #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub host: String,
 }
