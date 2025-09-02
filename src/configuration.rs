@@ -1,8 +1,8 @@
-use config::{self,Config, File, FileFormat};
-use secrecy::{ExposeSecret, SecretBox, SecretString};
+use config::{self, Config, File, FileFormat};
+use secrecy::{ExposeSecret, SecretString};
 use serde_aux::prelude::deserialize_number_from_string;
-
-
+use sqlx::postgres::{PgConnectOptions, PgSslMode};
+use sqlx::ConnectOptions;
 #[derive(serde::Deserialize)]
 pub struct Settings {
     pub database: DatabaseSettings,
@@ -16,6 +16,7 @@ pub struct DatabaseSettings {
     pub port: u16,
     pub host: String,
     pub db_name: String,
+    pub require_ssl: bool,
 }
 #[derive(serde::Deserialize)]
 pub struct ApplicationSettings {
@@ -83,17 +84,23 @@ pub fn get_config() -> Result<Settings, config::ConfigError> {
 }
 
 impl DatabaseSettings {
-    pub fn connection_string(&self) -> SecretBox<String> {
-        SecretBox::new(Box::new(format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.username, self.password.expose_secret(), self.host, self.port, self.db_name
-        )))
+    pub fn with_db(&self) -> PgConnectOptions {
+        let mut options = self.without_db().database(&self.db_name);
+        options = options.log_statements(tracing_log::log::LevelFilter::Trace);
+        options
     }
 
-    pub fn connection_string_without_db(&self) -> SecretBox<String> {
-        SecretBox::new(Box::new(format!(
-            "postgres://{}:{}@{}:{}",
-            self.username, self.password.expose_secret(), self.host, self.port
-        )))
+    pub fn without_db(&self) -> PgConnectOptions {
+        let ssl_mode = if self.require_ssl {
+            PgSslMode::Require
+        } else {
+            PgSslMode::Prefer
+        };
+        PgConnectOptions::new()
+            .host(&self.host)
+            .username(&self.username)
+            .password(self.password.expose_secret())
+            .port(self.port)
+            .ssl_mode(ssl_mode)
     }
 }
