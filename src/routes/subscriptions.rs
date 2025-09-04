@@ -1,9 +1,10 @@
-use actix_web::{post, web, HttpResponse};
 use actix_web::web::Data;
+use actix_web::{HttpResponse, post, web};
 use chrono::Utc;
-use tracing::{self};
 use serde::Deserialize;
 use sqlx::PgPool;
+use tracing::{self};
+use unicode_segmentation::UnicodeSegmentation;
 use uuid::Uuid;
 
 #[derive(Deserialize)]
@@ -11,6 +12,16 @@ pub struct FormData {
     email: String,
     name: String,
 }
+
+fn is_name_valid(s: &str) -> bool {
+    let is_empty_or_only_whitespace = s.trim().is_empty();
+    let forbidden_symbols = ['(', ')', '/', '\\', '"', '<', '>', '{', '}'];
+    let is_too_long = s.graphemes(true).count() > 255;
+    let contains_forbidden_characters = s.chars().any(|g| forbidden_symbols.contains(&g));
+
+    !(is_empty_or_only_whitespace || is_too_long || contains_forbidden_characters)
+}
+
 #[tracing::instrument(
 name = "Adding a subscriber",
 skip(form, pool),
@@ -21,16 +32,13 @@ fields(
 )]
 #[post("/subscriptions")]
 pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> HttpResponse {
-    match insert_subscriber(&pool, &form).await
-    {
-        Ok(_) => {
-            HttpResponse::Ok().finish()
-        },
-        Err(_) => {
-            HttpResponse::InternalServerError().finish()
-        }
+    if !is_name_valid(&form.name) {
+        return HttpResponse::BadRequest().finish();
     }
-
+    match insert_subscriber(&pool, &form).await {
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
 }
 
 #[tracing::instrument(
@@ -47,11 +55,12 @@ pub async fn insert_subscriber(pool: &Data<PgPool>, form: &FormData) -> Result<(
         form.email,
         form.name,
         Utc::now()
-    ).execute(pool.get_ref())
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to execute query: {:?}", e);
-            e
-        })?;
+    )
+    .execute(pool.get_ref())
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to execute query: {:?}", e);
+        e
+    })?;
     Ok(())
 }

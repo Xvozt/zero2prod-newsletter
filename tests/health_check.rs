@@ -3,7 +3,7 @@ use sqlx::{Connection, PgConnection};
 use sqlx::{Executor, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
-use zero2prod_newsletter::configuration::{get_config, DatabaseSettings};
+use zero2prod_newsletter::configuration::{DatabaseSettings, get_config};
 use zero2prod_newsletter::startup;
 use zero2prod_newsletter::telemetry::{get_subscriber, init_subscriber};
 
@@ -17,8 +17,6 @@ static TRACING: Lazy<()> = Lazy::new(|| {
         let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::sink);
         init_subscriber(subscriber);
     }
-
-
 });
 
 pub struct TestApp {
@@ -119,6 +117,34 @@ async fn subscribe_should_return_400_for_some_form_data_missing() {
             "The API didn't fail with 400 Bad Request when the payload was {}",
             error_msg
         )
+    }
+}
+
+#[tokio::test]
+async fn subcribe_should_return_400_when_fields_are_present_but_empty() {
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+    let test_cases = vec![
+        ("name=&email=ursula_le_guin%40gmail.com", "empty_name"),
+        ("name=Ursula&email=", "empty email"),
+        ("name=Ursula&email=not-an-email", "invalid email"),
+    ];
+
+    for (body, description) in test_cases {
+        let response = client
+            .post(format!("{}/subscriptions", app.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request");
+
+        assert_eq!(
+            200,
+            response.status().as_u16(),
+            "The API didn't return a 200 OK when the payload was {}",
+            description
+        );
     }
 }
 
