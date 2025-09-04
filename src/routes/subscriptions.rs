@@ -4,22 +4,14 @@ use chrono::Utc;
 use serde::Deserialize;
 use sqlx::PgPool;
 use tracing::{self};
-use unicode_segmentation::UnicodeSegmentation;
 use uuid::Uuid;
+
+use crate::domain::{NewSubscriber, SubscriberName};
 
 #[derive(Deserialize)]
 pub struct FormData {
     email: String,
     name: String,
-}
-
-fn is_name_valid(s: &str) -> bool {
-    let is_empty_or_only_whitespace = s.trim().is_empty();
-    let forbidden_symbols = ['(', ')', '/', '\\', '"', '<', '>', '{', '}'];
-    let is_too_long = s.graphemes(true).count() > 255;
-    let contains_forbidden_characters = s.chars().any(|g| forbidden_symbols.contains(&g));
-
-    !(is_empty_or_only_whitespace || is_too_long || contains_forbidden_characters)
 }
 
 #[tracing::instrument(
@@ -32,10 +24,12 @@ fields(
 )]
 #[post("/subscriptions")]
 pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> HttpResponse {
-    if !is_name_valid(&form.name) {
-        return HttpResponse::BadRequest().finish();
-    }
-    match insert_subscriber(&pool, &form).await {
+    let new_sub = NewSubscriber {
+        email: form.0.email,
+        name: SubscriberName::parse(form.0.name),
+    };
+
+    match insert_subscriber(&pool, &new_sub).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
@@ -43,17 +37,20 @@ pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> Ht
 
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",
-    skip(form, pool)
+    skip(new_subscriber, pool)
 )]
-pub async fn insert_subscriber(pool: &Data<PgPool>, form: &FormData) -> Result<(), sqlx::Error> {
+pub async fn insert_subscriber(
+    pool: &Data<PgPool>,
+    new_subscriber: &NewSubscriber,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
         VALUES ($1, $2, $3, $4 )
         "#,
         Uuid::new_v4(),
-        form.email,
-        form.name,
+        new_subscriber.email,
+        new_subscriber.name.as_ref(),
         Utc::now()
     )
     .execute(pool.get_ref())
