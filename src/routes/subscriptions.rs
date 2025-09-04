@@ -1,5 +1,5 @@
 use actix_web::web::Data;
-use actix_web::{HttpResponse, post, web};
+use actix_web::{post, web, HttpResponse};
 use chrono::Utc;
 use serde::Deserialize;
 use sqlx::PgPool;
@@ -24,11 +24,14 @@ fields(
 )]
 #[post("/subscriptions")]
 pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> HttpResponse {
+    let name = match SubscriberName::parse(form.0.name) {
+        Ok(name) => name,
+        Err(_) => return HttpResponse::BadRequest().finish(),
+    };
     let new_sub = NewSubscriber {
         email: form.0.email,
-        name: SubscriberName::parse(form.0.name),
+        name,
     };
-
     match insert_subscriber(&pool, &new_sub).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
