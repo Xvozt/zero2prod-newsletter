@@ -15,11 +15,11 @@ actix-web = "4.11.0"
 tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread"] }
 reqwest = "0.12.23"
 serde = { version = "1.0.219", features = ["derive"] }
-config = "0.15.14"
+config = "0.15.15"
 chrono = "0.4.41"
 tracing = { version = "0.1.41" }
 tracing-log = "0.2.0"
-tracing-subscriber = { version = "0.3.19", features = [
+tracing-subscriber = { version = "0.3.20", features = [
     "registry",
     "env-filter",
 ] }
@@ -29,7 +29,7 @@ secrecy = { version = "0.10.3", features = ["serde"]}
 tracing-actix-web = "0.7.19"
 serde-aux = "4.7.0"
 [dependencies.uuid]
-version = "1.18.0"
+version = "1.18.1"
 features = ["v4"]
 
 [dependencies.sqlx]
