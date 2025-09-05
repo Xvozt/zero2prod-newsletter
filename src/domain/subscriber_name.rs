@@ -25,7 +25,7 @@ impl SubscriberName {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::SubscriberName;
+    use super::SubscriberName;
     use claim::{assert_err, assert_ok};
     #[test]
     fn a_256_graphem_long_name_is_valid() {
