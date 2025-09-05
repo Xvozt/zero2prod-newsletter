@@ -1,11 +1,12 @@
 use actix_web::web::Data;
-use actix_web::{post, web, HttpResponse};
+use actix_web::{HttpResponse, post, web};
 use chrono::Utc;
 use serde::Deserialize;
 use sqlx::PgPool;
 use tracing::{self};
 use uuid::Uuid;
 
+// use crate::domain::{NewSubscriber, SubscriberName};
 use crate::domain::{NewSubscriber, SubscriberName};
 
 #[derive(Deserialize)]
