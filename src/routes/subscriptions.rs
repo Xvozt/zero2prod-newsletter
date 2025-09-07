@@ -1,18 +1,17 @@
 use actix_web::web::Data;
-use actix_web::{HttpResponse, post, web};
+use actix_web::{post, web, HttpResponse};
 use chrono::Utc;
 use serde::Deserialize;
 use sqlx::PgPool;
 use tracing::{self};
 use uuid::Uuid;
 
-// use crate::domain::{NewSubscriber, SubscriberName};
-use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::domain::NewSubscriber;
 
 #[derive(Deserialize)]
 pub struct FormData {
-    email: String,
-    name: String,
+    pub email: String,
+    pub name: String,
 }
 
 #[tracing::instrument(
@@ -25,16 +24,11 @@ fields(
 )]
 #[post("/subscriptions")]
 pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> HttpResponse {
-    let name = match SubscriberName::parse(form.0.name) {
-        Ok(name) => name,
-        Err(_) => return HttpResponse::BadRequest().finish(),
+    let new_subscriber = match form.0.try_into() {
+        Ok(subscriber) => subscriber,
+        Err(_) => return HttpResponse::BadRequest().finish()
     };
-    let email = match SubscriberEmail::parse(form.0.email) {
-        Ok(email) => email,
-        Err(_) => return HttpResponse::BadRequest().finish(),
-    };
-    let new_sub = NewSubscriber { email, name };
-    match insert_subscriber(&pool, &new_sub).await {
+    match insert_subscriber(&pool, &new_subscriber).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
