@@ -63,6 +63,7 @@ async fn spawn_app() -> TestApp {
         db_pool: connection_pool,
     }
 }
+
 #[tokio::test]
 async fn subscribe_should_return_200_for_valid_form_data() {
     //Arrange

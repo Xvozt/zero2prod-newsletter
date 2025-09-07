@@ -10,7 +10,7 @@ impl AsRef<str> for SubscriberName {
 }
 
 impl SubscriberName {
-    pub fn parse(s: String) -> Result<SubscriberName, String> {
+    pub fn parse(s: String) -> Result<Self, String> {
         let is_empty_or_only_whitespace = s.trim().is_empty();
         let forbidden_symbols = ['(', ')', '/', '\\', '"', '<', '>', '{', '}'];
         let is_too_long = s.graphemes(true).count() > 256;
