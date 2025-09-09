@@ -2,3 +2,4 @@ application:
   host: 0.0.0.0
 database:
   require_ssl: true
+# I need some not public mail to use postmark and fill prod config
