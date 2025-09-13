@@ -7,5 +7,5 @@ database:
   password: "password"
   db_name: "newsletter"
 email_client:
-  base_url: "localhost"
-  sender_email: "test@gmail.com"
+  base_url: "https://api.postmarkapp.com"
+  sender_email: "sergey@caracolito.to"
