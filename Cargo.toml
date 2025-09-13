@@ -52,3 +52,4 @@ features = [
 [dev-dependencies]
 fake = "4.4.0"
 claim = "0.5.0"
+wiremock = "0.6.5"
