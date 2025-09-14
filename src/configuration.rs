@@ -1,5 +1,6 @@
 use crate::domain::SubscriberEmail;
 use config::{self, Config, File, FileFormat};
+use reqwest::Url;
 use secrecy::{ExposeSecret, SecretString};
 use serde_aux::prelude::deserialize_number_from_string;
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
@@ -29,7 +30,7 @@ pub struct ApplicationSettings {
 }
 #[derive(serde::Deserialize)]
 pub struct EmailClientSettings {
-    pub base_url: String,
+    pub base_url: Url,
     pub sender_email: String,
 }
 

@@ -1,9 +1,9 @@
 use crate::domain::SubscriberEmail;
-use reqwest::Client;
+use reqwest::{Client, Url};
 
 pub struct EmailClient {
     sender: SubscriberEmail,
-    base_url: String,
+    base_url: Url,
     http_client: Client,
 }
 
@@ -15,10 +15,12 @@ impl EmailClient {
         html_content: &str,
         text_content: &str,
     ) -> Result<(), String> {
+        let url = self.base_url.join("/email").unwrap();
+        let builder = self.http_client.post(url);
         Ok(())
     }
 
-    pub fn new(base_url: String, sender: SubscriberEmail) -> Self {
+    pub fn new(base_url: Url, sender: SubscriberEmail) -> Self {
         Self {
             http_client: Client::new(),
             base_url,
@@ -34,6 +36,7 @@ mod tests {
     use fake::faker::internet::en::SafeEmail;
     use fake::faker::lorem::en::{Paragraph, Sentence};
     use fake::Fake;
+    use reqwest::Url;
     use wiremock::matchers::any;
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -42,7 +45,8 @@ mod tests {
         // Arrange
         let mock_server = MockServer::start().await;
         let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
-        let email_client = EmailClient::new(mock_server.uri(), sender);
+        let url = Url::parse(&mock_server.uri()).expect("Failed to parse server url");
+        let email_client = EmailClient::new(url, sender);
         Mock::given(any())
             .respond_with(ResponseTemplate::new(200))
             .expect(1)
