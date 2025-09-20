@@ -62,7 +62,8 @@ mod tests {
     use fake::{Fake, Faker};
     use reqwest::Url;
     use secrecy::SecretString;
-    use wiremock::matchers::any;
+    use wiremock::matchers::{MethodExactMatcher, header};
+    use wiremock::matchers::{header_exists, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[tokio::test]
@@ -71,8 +72,12 @@ mod tests {
         let mock_server = MockServer::start().await;
         let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
         let url = Url::parse(&mock_server.uri()).expect("Failed to parse server url");
-        let email_client = EmailClient::new(url, sender, SecretString::from(Faker.fake::<String>()));
-        Mock::given(any())
+        let email_client =
+            EmailClient::new(url, sender, SecretString::from(Faker.fake::<String>()));
+        Mock::given(header_exists("X-Postmark-Server-Token"))
+            .and(header("Content-Type", "application/json"))
+            .and(path("/email"))
+            .and(MethodExactMatcher::new("POST"))
             .respond_with(ResponseTemplate::new(200))
             .expect(1)
             .mount(&mock_server)
@@ -82,7 +87,9 @@ mod tests {
         let content: String = Paragraph(1..10).fake();
 
         // Act
-        let _ = email_client.send_mail(subscriber_mail, &subject, &content, &content).await;
+        let _ = email_client
+            .send_mail(subscriber_mail, &subject, &content, &content)
+            .await;
 
         // Assert
     }
