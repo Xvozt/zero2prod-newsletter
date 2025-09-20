@@ -9,6 +9,7 @@ pub struct EmailClient {
     auth_token: SecretString,
 }
 #[derive(serde::Serialize)]
+#[serde(rename_all = "PascalCase")]
 struct SendEmailRequest {
     from: String,
     to: String,
@@ -64,7 +65,7 @@ mod tests {
     use secrecy::SecretString;
     use wiremock::matchers::{MethodExactMatcher, header};
     use wiremock::matchers::{header_exists, path};
-    use wiremock::{Mock, MockServer, ResponseTemplate};
+    use wiremock::{Match, Mock, MockServer, ResponseTemplate};
 
     #[tokio::test]
     async fn send_email_fires_a_request_to_base_url() {
@@ -78,6 +79,7 @@ mod tests {
             .and(header("Content-Type", "application/json"))
             .and(path("/email"))
             .and(MethodExactMatcher::new("POST"))
+            .and(SendEmailBodyMatcher)
             .respond_with(ResponseTemplate::new(200))
             .expect(1)
             .mount(&mock_server)
@@ -92,5 +94,23 @@ mod tests {
             .await;
 
         // Assert
+    }
+
+    struct SendEmailBodyMatcher;
+
+    impl Match for SendEmailBodyMatcher {
+        fn matches(&self, request: &wiremock::Request) -> bool {
+            let result: Result<serde_json::Value, _> = serde_json::from_slice(&request.body);
+            if let Ok(body) = result {
+                dbg!(&body);
+                body.get("From").is_some()
+                    && body.get("To").is_some()
+                    && body.get("Subject").is_some()
+                    && body.get("HtmlBody").is_some()
+                    && body.get("TextBody").is_some()
+            } else {
+                false
+            }
+        }
     }
 }
