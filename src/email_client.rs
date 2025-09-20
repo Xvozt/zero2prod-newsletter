@@ -40,7 +40,8 @@ impl EmailClient {
             .header("X-Postmark-Server-Token", self.auth_token.expose_secret())
             .json(&request_body)
             .send()
-            .await?;
+            .await?
+            .error_for_status()?;
         Ok(())
     }
 
@@ -58,12 +59,13 @@ impl EmailClient {
 mod tests {
     use crate::domain::SubscriberEmail;
     use crate::email_client::EmailClient;
+    use claim::{assert_err, assert_ok};
     use fake::faker::internet::en::SafeEmail;
     use fake::faker::lorem::en::{Paragraph, Sentence};
     use fake::{Fake, Faker};
     use reqwest::Url;
     use secrecy::SecretString;
-    use wiremock::matchers::{MethodExactMatcher, header};
+    use wiremock::matchers::{MethodExactMatcher, any, header};
     use wiremock::matchers::{header_exists, path};
     use wiremock::{Match, Mock, MockServer, ResponseTemplate};
 
@@ -95,14 +97,64 @@ mod tests {
 
         // Assert
     }
+    #[tokio::test]
+    async fn send_email_succeeds_when_server_returns_200() {
+        //Arrange
+        let mock_server = MockServer::start().await;
+        let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
+        let url = Url::parse(&mock_server.uri()).expect("Failed to parse server url");
+        let email_client =
+            EmailClient::new(url, sender, SecretString::from(Faker.fake::<String>()));
+        let subscriber_mail = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
+        let subject: String = Sentence(1..2).fake();
+        let content: String = Paragraph(1..10).fake();
 
+        Mock::given(any())
+            .respond_with(ResponseTemplate::new(200))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        //Act
+        let outcome = email_client
+            .send_mail(subscriber_mail, &subject, &content, &content)
+            .await;
+
+        //Assert
+        assert_ok!(outcome);
+    }
+    #[tokio::test]
+    async fn send_email_fails_if_server_returns_500() {
+        //Arrange
+        let mock_server = MockServer::start().await;
+        let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
+        let url = Url::parse(&mock_server.uri()).expect("Failed to parse server url");
+        let email_client =
+            EmailClient::new(url, sender, SecretString::from(Faker.fake::<String>()));
+        let subscriber_mail = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
+        let subject: String = Sentence(1..2).fake();
+        let content: String = Paragraph(1..10).fake();
+
+        Mock::given(any())
+            .respond_with(ResponseTemplate::new(500))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        //Act
+        let outcome = email_client
+            .send_mail(subscriber_mail, &subject, &content, &content)
+            .await;
+
+        //Assert
+        assert_err!(outcome);
+    }
     struct SendEmailBodyMatcher;
 
     impl Match for SendEmailBodyMatcher {
         fn matches(&self, request: &wiremock::Request) -> bool {
             let result: Result<serde_json::Value, _> = serde_json::from_slice(&request.body);
             if let Ok(body) = result {
-                dbg!(&body);
                 body.get("From").is_some()
                     && body.get("To").is_some()
                     && body.get("Subject").is_some()
