@@ -81,10 +81,8 @@ mod tests {
     async fn send_email_sends_expected_request() {
         // Arrange
         let mock_server = MockServer::start().await;
-        let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
         let url = Url::parse(&mock_server.uri()).expect("Failed to parse server url");
-        let email_client =
-            EmailClient::new(url, sender, SecretString::from(Faker.fake::<String>()));
+        let email_client = email_client(url);
         Mock::given(header_exists("X-Postmark-Server-Token"))
             .and(header("Content-Type", "application/json"))
             .and(path("/email"))
@@ -94,13 +92,10 @@ mod tests {
             .expect(1)
             .mount(&mock_server)
             .await;
-        let subscriber_mail = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
-        let subject: String = Sentence(1..2).fake();
-        let content: String = Paragraph(1..10).fake();
 
         // Act
         let _ = email_client
-            .send_mail(subscriber_mail, &subject, &content, &content)
+            .send_mail(email(), &subject(), &content(), &content())
             .await;
 
         // Assert
@@ -109,13 +104,8 @@ mod tests {
     async fn send_email_succeeds_when_server_returns_200() {
         //Arrange
         let mock_server = MockServer::start().await;
-        let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
         let url = Url::parse(&mock_server.uri()).expect("Failed to parse server url");
-        let email_client =
-            EmailClient::new(url, sender, SecretString::from(Faker.fake::<String>()));
-        let subscriber_mail = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
-        let subject: String = Sentence(1..2).fake();
-        let content: String = Paragraph(1..10).fake();
+        let email_client = email_client(url);
 
         Mock::given(any())
             .respond_with(ResponseTemplate::new(200))
@@ -125,7 +115,7 @@ mod tests {
 
         //Act
         let outcome = email_client
-            .send_mail(subscriber_mail, &subject, &content, &content)
+            .send_mail(email(), &subject(), &content(), &content())
             .await;
 
         //Assert
@@ -135,13 +125,8 @@ mod tests {
     async fn send_email_fails_if_server_returns_500() {
         //Arrange
         let mock_server = MockServer::start().await;
-        let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
         let url = Url::parse(&mock_server.uri()).expect("Failed to parse server url");
-        let email_client =
-            EmailClient::new(url, sender, SecretString::from(Faker.fake::<String>()));
-        let subscriber_mail = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
-        let subject: String = Sentence(1..2).fake();
-        let content: String = Paragraph(1..10).fake();
+        let email_client = email_client(url);
 
         Mock::given(any())
             .respond_with(ResponseTemplate::new(500))
@@ -151,7 +136,7 @@ mod tests {
 
         //Act
         let outcome = email_client
-            .send_mail(subscriber_mail, &subject, &content, &content)
+            .send_mail(email(), &subject(), &content(), &content())
             .await;
 
         //Assert
@@ -162,13 +147,8 @@ mod tests {
     async fn send_email_times_out_when_server_responds_too_slowly() {
         //Arrange
         let mock_server = MockServer::start().await;
-        let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
         let url = Url::parse(&mock_server.uri()).expect("Failed to parse server url");
-        let email_client =
-            EmailClient::new(url, sender, SecretString::from(Faker.fake::<String>()));
-        let subscriber_mail = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
-        let subject: String = Sentence(1..2).fake();
-        let content: String = Paragraph(1..10).fake();
+        let email_client = email_client(url);
         let delay = Duration::from_secs(180);
         Mock::given(any())
             .respond_with(ResponseTemplate::new(200).set_delay(delay))
@@ -178,7 +158,7 @@ mod tests {
 
         //Act
         let outcome = email_client
-            .send_mail(subscriber_mail, &subject, &content, &content)
+            .send_mail(email(), &subject(), &content(), &content())
             .await;
 
         //Assert
@@ -199,5 +179,25 @@ mod tests {
                 false
             }
         }
+    }
+
+    fn subject() -> String {
+        Sentence(1..2).fake()
+    }
+
+    fn content() -> String {
+        Paragraph(1..10).fake()
+    }
+
+    fn email() -> SubscriberEmail {
+        SubscriberEmail::parse(SafeEmail().fake()).unwrap()
+    }
+
+    fn email_client(base_url: Url) -> EmailClient {
+        EmailClient::new(
+            base_url,
+            email(),
+            SecretString::from(Faker.fake::<String>()),
+        )
     }
 }
