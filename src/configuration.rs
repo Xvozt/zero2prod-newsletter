@@ -3,8 +3,8 @@ use config::{self, Config, File, FileFormat};
 use reqwest::Url;
 use secrecy::{ExposeSecret, SecretString};
 use serde_aux::prelude::deserialize_number_from_string;
-use sqlx::postgres::{PgConnectOptions, PgSslMode};
 use sqlx::ConnectOptions;
+use sqlx::postgres::{PgConnectOptions, PgSslMode};
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
@@ -33,11 +33,15 @@ pub struct EmailClientSettings {
     pub base_url: Url,
     pub sender_email: String,
     pub auth_token: SecretString,
+    pub timeout_in_millis: u64,
 }
 
 impl EmailClientSettings {
     pub fn sender(&self) -> Result<SubscriberEmail, String> {
         SubscriberEmail::parse(self.sender_email.clone())
+    }
+    pub fn timeout(&self) -> std::time::Duration {
+        std::time::Duration::from_millis(self.timeout_in_millis)
     }
 }
 
@@ -83,7 +87,7 @@ pub fn get_config() -> Result<Settings, config::ConfigError> {
     let settings = Config::builder()
         .add_source(File::new(
             config_dir.join("base").to_str().unwrap(),
-            FileFormat::Yaml
+            FileFormat::Yaml,
         ))
         .add_source(File::new(
             config_dir.join(environment.as_str()).to_str().unwrap(),
@@ -96,7 +100,6 @@ pub fn get_config() -> Result<Settings, config::ConfigError> {
         )
         .build()?;
     settings.try_deserialize()
-    
 }
 
 impl DatabaseSettings {

@@ -47,11 +47,13 @@ impl EmailClient {
         Ok(())
     }
 
-    pub fn new(base_url: Url, sender: SubscriberEmail, auth_token: SecretString) -> Self {
-        let http_client = Client::builder()
-            .timeout(Duration::from_secs(10))
-            .build()
-            .unwrap();
+    pub fn new(
+        base_url: Url,
+        sender: SubscriberEmail,
+        auth_token: SecretString,
+        timeout: Duration,
+    ) -> Self {
+        let http_client = Client::builder().timeout(timeout).build().unwrap();
         Self {
             http_client,
             base_url,
@@ -198,6 +200,7 @@ mod tests {
             base_url,
             email(),
             SecretString::from(Faker.fake::<String>()),
+            std::time::Duration::from_millis(200),
         )
     }
 }
