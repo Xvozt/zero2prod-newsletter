@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::domain::SubscriberEmail;
 use reqwest::{Client, Url};
 use secrecy::{ExposeSecret, SecretString};
@@ -46,8 +48,12 @@ impl EmailClient {
     }
 
     pub fn new(base_url: Url, sender: SubscriberEmail, auth_token: SecretString) -> Self {
+        let http_client = Client::builder()
+            .timeout(Duration::from_secs(10))
+            .build()
+            .unwrap();
         Self {
-            http_client: Client::new(),
+            http_client,
             base_url,
             sender,
             auth_token,
@@ -57,6 +63,8 @@ impl EmailClient {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use crate::domain::SubscriberEmail;
     use crate::email_client::EmailClient;
     use claim::{assert_err, assert_ok};
@@ -137,6 +145,33 @@ mod tests {
 
         Mock::given(any())
             .respond_with(ResponseTemplate::new(500))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        //Act
+        let outcome = email_client
+            .send_mail(subscriber_mail, &subject, &content, &content)
+            .await;
+
+        //Assert
+        assert_err!(outcome);
+    }
+
+    #[tokio::test]
+    async fn send_email_times_out_when_server_responds_too_slowly() {
+        //Arrange
+        let mock_server = MockServer::start().await;
+        let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
+        let url = Url::parse(&mock_server.uri()).expect("Failed to parse server url");
+        let email_client =
+            EmailClient::new(url, sender, SecretString::from(Faker.fake::<String>()));
+        let subscriber_mail = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
+        let subject: String = Sentence(1..2).fake();
+        let content: String = Paragraph(1..10).fake();
+        let delay = Duration::from_secs(180);
+        Mock::given(any())
+            .respond_with(ResponseTemplate::new(200).set_delay(delay))
             .expect(1)
             .mount(&mock_server)
             .await;
