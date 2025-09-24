@@ -24,6 +24,18 @@ pub struct TestApp {
     pub db_pool: PgPool,
 }
 
+impl TestApp {
+    pub async fn post_subscriptions(&self, body: String) -> reqwest::Response {
+        reqwest::Client::new()
+            .post(&format!("{}/subscriptions", self.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+}
+
 async fn configure_database(configuration: &DatabaseSettings) -> PgPool {
     // create db
     let mut connection = PgConnection::connect_with(&configuration.without_db())
@@ -69,31 +81,4 @@ pub async fn spawn_app() -> TestApp {
         address,
         db_pool: get_connection_pool(&configuration.database),
     }
-
-    // let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
-    // let port = listener.local_addr().unwrap().port();
-    // let address = format!("http://127.0.0.1:{}", port);
-    // let mut configuration = get_config().expect("Failed to get configuration");
-    // configuration.database.db_name = Uuid::new_v4().to_string();
-
-    // let sender_email = configuration
-    //     .email_client
-    //     .sender()
-    //     .expect("Invalid sender email address");
-    // let timeout = configuration.email_client.timeout();
-    // let email_client = EmailClient::new(
-    //     configuration.email_client.base_url,
-    //     sender_email,
-    //     configuration.email_client.auth_token,
-    //     timeout,
-    // );
-
-    // let connection_pool = configure_database(&configuration.database).await;
-    // let server = startup::run(listener, connection_pool.clone(), email_client)
-    //     .expect("Failed to bind address");
-    // let _ = tokio::spawn(server);
-    // TestApp {
-    //     address,
-    //     db_pool: connection_pool,
-    // }
 }
