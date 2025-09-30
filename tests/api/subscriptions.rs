@@ -65,3 +65,8 @@ async fn subscribe_should_return_400_when_fields_are_present_but_empty() {
         );
     }
 }
+
+#[tokio::test]
+async fn subscribe_should_send_a_confirmation_mail_for_valid_data() {
+    todo!()
+}

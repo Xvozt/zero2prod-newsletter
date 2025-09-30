@@ -1,6 +1,7 @@
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
+use wiremock::MockServer;
 use zero2prod_newsletter::startup::{Application, get_connection_pool};
 use zero2prod_newsletter::{
     configuration::{DatabaseSettings, get_config},
@@ -22,6 +23,7 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
+    pub email_server: MockServer,
 }
 
 impl TestApp {
@@ -69,6 +71,8 @@ pub async fn spawn_app() -> TestApp {
         c
     };
 
+    let email_server = MockServer::start().await;
+
     configure_database(&configuration.database).await;
     let application = Application::build(configuration.clone())
         .await
@@ -80,5 +84,6 @@ pub async fn spawn_app() -> TestApp {
     TestApp {
         address,
         db_pool: get_connection_pool(&configuration.database),
+        email_server,
     }
 }
