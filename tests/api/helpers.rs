@@ -1,4 +1,5 @@
 use once_cell::sync::Lazy;
+use reqwest::Url;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use wiremock::MockServer;
@@ -64,14 +65,15 @@ async fn configure_database(configuration: &DatabaseSettings) -> PgPool {
 pub async fn spawn_app() -> TestApp {
     Lazy::force(&TRACING);
 
+    let email_server = MockServer::start().await;
+
     let configuration = {
         let mut c = get_config().expect("Failed to get configuration");
         c.database.db_name = Uuid::new_v4().to_string();
         c.application.port = 0;
+        c.email_client.base_url = Url::parse(&email_server.uri()).unwrap();
         c
     };
-
-    let email_server = MockServer::start().await;
 
     configure_database(&configuration.database).await;
     let application = Application::build(configuration.clone())
