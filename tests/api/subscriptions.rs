@@ -124,7 +124,7 @@ async fn subscribe_should_send_a_confirmation_mail_with_a_link() {
         links[0].as_str().to_owned()
     };
 
-    let html_link = get_link(&body["Html-Body"].as_str().unwrap());
-    let text_link = get_link(&body["Text-Body"].as_str().unwrap());
+    let html_link = get_link(&body["HtmlBody"].as_str().unwrap());
+    let text_link = get_link(&body["TextBody"].as_str().unwrap());
     assert_eq!(html_link, text_link);
 }

@@ -36,21 +36,58 @@ pub async fn subscribe(
     if insert_subscriber(&pool, &new_subscriber).await.is_err() {
         return HttpResponse::InternalServerError().finish();
     }
-
-    if email_client
-        .send_mail(
-            new_subscriber.email,
-            "Welcome!",
-            "Welcome to our newsletter!",
-            "Welcome to our newsletter!",
-        )
+    if send_confirmation_mail(&email_client, new_subscriber)
         .await
         .is_err()
     {
         return HttpResponse::InternalServerError().finish();
     }
+    // let confirmation_mail = "https://my-api.com/subscriptions/confirm";
+    // if email_client
+    //     .send_mail(
+    //         new_subscriber.email,
+    //         "Welcome!",
+    //         &format!(
+    //             "Welcome to our newsletter!<br />\
+    //         Click <a href=\"{}\">here</a> to confirm your subscription.",
+    //             confirmation_mail
+    //         ),
+    //         &format!(
+    //             "Welcome to our newsletter!\nVisit {} to confirm your subscription",
+    //             confirmation_mail
+    //         ),
+    //     )
+    //     .await
+    //     .is_err()
+    // {
+    //     return HttpResponse::InternalServerError().finish();
+    // }
 
     HttpResponse::Ok().finish()
+}
+
+#[tracing::instrument(
+    name = "Send a confirmation link to the new subscriber",
+    skip(new_subscriber, email_client)
+)]
+pub async fn send_confirmation_mail(
+    email_client: &EmailClient,
+    new_subscriber: NewSubscriber,
+) -> Result<(), reqwest::Error> {
+    let confirmation_link = "https://my-api.com/subscriptions/confirm";
+    let html_body = format!(
+        "Welcome to our newsletter!<br /> \
+    Click <a href=\"{}\">here</a> to confirm your subscription",
+        confirmation_link
+    );
+    let text_body = format!(
+        "Welcome to our newsletter!\nVisit {} to confirm your subscription",
+        confirmation_link
+    );
+
+    email_client
+        .send_mail(new_subscriber.email, "Welcome!", &html_body, &text_body)
+        .await
 }
 
 #[tracing::instrument(
