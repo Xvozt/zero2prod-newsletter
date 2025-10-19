@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::domain::NewSubscriber;
 use crate::email_client::EmailClient;
+use crate::startup::ApplicationBaseUrl;
 
 #[derive(Deserialize)]
 pub struct FormData {
@@ -17,7 +18,7 @@ pub struct FormData {
 
 #[tracing::instrument(
 name = "Adding a subscriber",
-skip(form, pool, email_client),
+skip(form, pool, email_client, base_url),
 fields(
     subscriber_email = %form.email,
     subscriber_name = %form.name
@@ -28,6 +29,7 @@ pub async fn subscribe(
     form: Form<FormData>,
     pool: Data<PgPool>,
     email_client: Data<EmailClient>,
+    base_url: Data<ApplicationBaseUrl>,
 ) -> HttpResponse {
     let new_subscriber = match form.0.try_into() {
         Ok(subscriber) => subscriber,
@@ -36,7 +38,7 @@ pub async fn subscribe(
     if insert_subscriber(&pool, &new_subscriber).await.is_err() {
         return HttpResponse::InternalServerError().finish();
     }
-    if send_confirmation_mail(&email_client, new_subscriber)
+    if send_confirmation_mail(&email_client, new_subscriber, &base_url.0)
         .await
         .is_err()
     {
@@ -53,8 +55,12 @@ pub async fn subscribe(
 pub async fn send_confirmation_mail(
     email_client: &EmailClient,
     new_subscriber: NewSubscriber,
+    base_url: &str,
 ) -> Result<(), reqwest::Error> {
-    let confirmation_link = "https://my-api.com/subscriptions/confirm";
+    let confirmation_link = format!(
+        "{}/subscriptions/confirm?subscription_token=my_token",
+        base_url
+    );
     let html_body = format!(
         "Welcome to our newsletter!<br /> \
     Click <a href=\"{}\">here</a> to confirm your subscription",
