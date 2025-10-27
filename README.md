@@ -30,22 +30,27 @@ We will not add features to
 /health_check GET
 
 /subscriptions POST
+
+/subscriptions/confirm GET
 ```
 
 #### Confirmation link for new subscriber plan
 
 Every time a user wants to subscribe to our newsletter they fire a POST /subscriptions request. Our request handler will:
 
-- [ ] add their details to our database in the subscriptions table, with status equal to pending_confirmation;
-- [ ] generate a (unique) subscription_token;
-- [ ] store subscription_token in our database against their id in a subscription_tokens table;
-- [ ] send an email to the new subscriber containing a link structured as https://<our-api-domain>/subscriptions/confirm?token=<subscription_token>;
-- [ ] return a 200 OK.
+- [x] add their details to our database in the subscriptions table, with status equal to pending_confirmation;
+- [x] generate a (unique) subscription_token;
+- [x] store subscription_token in our database against their id in a subscription_tokens table;
+- [x] send an email to the new subscriber containing a link structured as https://<our-api-domain>/subscriptions/confirm?token=<subscription_token>;
+- [x] return a 200 OK.
 
 Once they click on the link, a browser tab will open up and a GET request will be fired to our GET /subscriptions/confirm endpoint. Our request handler will:
 
-- [ ] retrieve subscription_token from the query parameters;
-- [ ] retrieve the subscriber id associated with subscription_token from the subscription_tokens table;
-- [ ] update the subscriber status from pending_confirmation to active in the subscriptions table;
-- [ ] return a 200 OK.
+- [x] retrieve subscription_token from the query parameters;
+- [x] retrieve the subscriber id associated with subscription_token from the subscription_tokens table;
+- [x] update the subscriber status from pending_confirmation to active in the subscriptions table;
+- [w] return a 200 OK.
+
+Once all is done i need to 
+- [ ] add proper integration with postmark in production
 
