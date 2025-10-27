@@ -51,6 +51,14 @@ Once they click on the link, a browser tab will open up and a GET request will b
 - [x] update the subscriber status from pending_confirmation to active in the subscriptions table;
 - [w] return a 200 OK.
 
-Once all is done i need to 
-- [ ] add proper integration with postmark in production
 
+And some quality of life stuff:
+- [ ] If user tries to subscribe twice I need to make sure that he receives two confirmation emails;
+- [ ] What happens if a user clicks on a confirmation link twice?
+- [ ] What happens if the subscription token is well-formatted but non-existent?
+- [ ] Add validation on the incoming token, I am currently passing the raw user input straight into a query;
+- [ ] Use a proper templating solution for emails (e.g. [tera](https://crates.io/crates/tera));
+
+
+Once all is done i need to:
+- [ ] add proper integration with postmark in production
