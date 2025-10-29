@@ -51,6 +51,8 @@ Once they click on the link, a browser tab will open up and a GET request will b
 - [x] update the subscriber status from pending_confirmation to active in the subscriptions table;
 - [w] return a 200 OK.
 
+## Error handling
+- TBD
 
 ## Quality of life stuff:
 - [ ] If user tries to subscribe twice I need to make sure that he receives two confirmation emails;
