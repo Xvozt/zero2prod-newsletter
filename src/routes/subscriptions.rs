@@ -7,7 +7,7 @@ use rand::{rng, Rng};
 use serde::Deserialize;
 use sqlx::{PgPool, Postgres, Transaction};
 use std::error::Error;
-use std::fmt::Formatter;
+use std::fmt::{Debug, Formatter};
 use tracing::{self};
 use uuid::Uuid;
 
@@ -23,24 +23,34 @@ pub struct FormData {
 }
 pub struct StoreTokenError(sqlx::Error);
 
+impl Error for StoreTokenError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(&self.0)
+    }
+}
+
 impl std::fmt::Display for StoreTokenError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "A database error was encountered while trying to store a subscription token")
     }
 }
 
-impl std::fmt::Debug for StoreTokenError {
+impl Debug for StoreTokenError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         error_chain_fmt(self, f)
     }
 }
 
-#[derive(Debug)]
 pub enum SubscribeError {
     ValidationError(String),
     DatabaseError(sqlx::Error),
     StoreTokenError(StoreTokenError),
     SendEmailError(reqwest::Error),
+}
+impl Debug for SubscribeError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
 }
 
 impl From<reqwest::Error> for SubscribeError {
@@ -67,18 +77,26 @@ impl From<String> for SubscribeError {
     }
 }
 
-impl Error for StoreTokenError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        Some(&self.0)
-    }
-}
-
 impl std::fmt::Display for SubscribeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Failed to create a new subscriber")
+        match self {
+            ValidationError(e) => write!(f, "{}", e),
+            DatabaseError(_) => write!(f, "???"),
+            SubscribeError::StoreTokenError(_) => write!(f, "Failed to store confirmation token for the new subscriber"),
+            SendEmailError(_) => write!(f, "Failed to send a confirmation mail"),
+        }
     }
 }
-impl Error for SubscribeError {}
+impl Error for SubscribeError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            ValidationError(_) => None,
+            DatabaseError(e) => Some(e),
+            SubscribeError::StoreTokenError(e) => Some(e),
+            SendEmailError(e) => Some(e),
+        }
+    }
+}
 
 impl ResponseError for SubscribeError {
     fn status_code(&self) -> StatusCode {
