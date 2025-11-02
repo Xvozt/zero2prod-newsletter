@@ -5,6 +5,7 @@ use rand::distr::Alphanumeric;
 use rand::{rng, Rng};
 use serde::Deserialize;
 use sqlx::{PgPool, Postgres, Transaction};
+use std::error::Error;
 use std::fmt::Formatter;
 use tracing::{self};
 use uuid::Uuid;
@@ -18,16 +19,28 @@ pub struct FormData {
     pub email: String,
     pub name: String,
 }
-#[derive(Debug)]
 pub struct StoreTokenError(sqlx::Error);
 
 impl ResponseError for StoreTokenError {}
+
+impl Error for StoreTokenError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(&self.0)
+    }
+}
 
 impl std::fmt::Display for StoreTokenError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "A database error was encountered while trying to store a subscription token")
     }
 }
+
+impl std::fmt::Debug for StoreTokenError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
 
 #[tracing::instrument(
 name = "Adding a subscriber",
@@ -169,4 +182,17 @@ fn generate_subscriptions_token() -> String {
         .map(char::from)
         .take(25)
         .collect()
+}
+
+fn error_chain_fmt(
+    e: &impl Error,
+    f: &mut Formatter<'_>
+) -> std::fmt::Result {
+    writeln!(f, "{}\n", e)?;
+    let mut current = e.source();
+    while let Some(cause) = current {
+        writeln!(f, "Caused by:\n\t{}", cause)?;
+        current = cause.source();
+    }
+    Ok(())
 }
