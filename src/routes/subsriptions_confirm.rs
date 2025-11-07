@@ -7,6 +7,10 @@ pub struct Parameters {
     subscription_token: String,
 }
 
+// pub enum ConfirmError {
+//     // we have variants
+// }
+
 #[tracing::instrument(name = "Confirm a pending subscriber", skip(parameters))]
 #[get("/subscriptions/confirm")]
 pub async fn confirm(parameters: web::Query<Parameters>, pool: web::Data<PgPool>) -> HttpResponse {
