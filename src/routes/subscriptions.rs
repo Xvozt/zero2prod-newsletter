@@ -1,6 +1,7 @@
 use actix_web::http::StatusCode;
 use actix_web::web::{Data, Form};
 use actix_web::{post, HttpResponse, ResponseError};
+use anyhow::Context;
 use chrono::Utc;
 use rand::distr::Alphanumeric;
 use rand::{rng, Rng};
@@ -10,7 +11,6 @@ use std::error::Error;
 use std::fmt::{Debug, Formatter};
 use tracing::{self};
 use uuid::Uuid;
-use anyhow::Context;
 
 use crate::domain::NewSubscriber;
 use crate::email_client::EmailClient;
@@ -176,11 +176,7 @@ pub async fn insert_subscriber(
         Utc::now(),
     )
     .execute(&mut **transaction)
-    .await
-    .map_err(|e| {
-        tracing::error!("Failed to execute query: {:?}", e);
-        e
-    })?;
+    .await?;
     Ok(subscriber_id)
 }
 
@@ -192,7 +188,7 @@ fn generate_subscriptions_token() -> String {
         .collect()
 }
 
-fn error_chain_fmt(
+pub fn error_chain_fmt(
     e: &impl Error,
     f: &mut Formatter<'_>
 ) -> std::fmt::Result {
