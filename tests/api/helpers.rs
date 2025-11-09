@@ -3,9 +3,9 @@ use reqwest::Url;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use wiremock::MockServer;
-use zero2prod_newsletter::startup::{Application, get_connection_pool};
+use zero2prod_newsletter::startup::{get_connection_pool, Application};
 use zero2prod_newsletter::{
-    configuration::{DatabaseSettings, get_config},
+    configuration::{get_config, DatabaseSettings},
     telemetry::{get_subscriber, init_subscriber},
 };
 
@@ -36,7 +36,7 @@ pub struct ConfirmationLinks {
 impl TestApp {
     pub async fn post_subscriptions(&self, body: String) -> reqwest::Response {
         reqwest::Client::new()
-            .post(&format!("{}/subscriptions", self.address))
+            .post(format!("{}/subscriptions", self.address))
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
