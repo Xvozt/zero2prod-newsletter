@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use reqwest::Url;
+use reqwest::{Request, Url};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use wiremock::MockServer;
@@ -67,6 +67,15 @@ impl TestApp {
         let plain_text = get_link(&body["TextBody"].as_str().unwrap());
 
         ConfirmationLinks { html, plain_text }
+    }
+
+    pub async fn publish_newsletter(&self, body: serde_json::Value) -> reqwest::Response {
+        reqwest::Client::new()
+            .post(format!("{}/newsletters", self.address))
+            .json(&body)
+            .send()
+            .await
+            .expect("Failed to execute request")
     }
 }
 

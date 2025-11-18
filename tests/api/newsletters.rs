@@ -22,12 +22,7 @@ async fn newsletter_is_not_delivered_to_unconfirmed_subscriber() {
                 "html": "<p>Newsletter body as HTML</p>"
         }
         });
-    let response = reqwest::Client::new()
-        .post(format!("{}/newsletters", &app.address))
-        .json(&newsletter_request_body)
-        .send()
-        .await
-        .expect("Failed to execute request");
+    let response = app.publish_newsletter(newsletter_request_body).await;
 
     assert_eq!(response.status().as_u16(), 200);
 }
@@ -52,16 +47,43 @@ async fn newsletter_is_delivered_to_confirmed_subscriber() {
         }
         });
 
-    let response = reqwest::Client::new()
-        .post(format!("{}/newsletters", &app.address))
-        .json(&newsletter_request_body)
-        .send()
-        .await
-        .expect("Failed to execute request");
+    let response = app.publish_newsletter(newsletter_request_body).await;
 
     assert_eq!(response.status().as_u16(), 200);
 }
-async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks{
+
+#[tokio::test]
+async fn newsletter_returns_400_for_invalid_data() {
+    // Arrange
+    let app = spawn_app().await;
+
+    let test_cases = vec![
+        (serde_json::json!(
+            {"content": {
+                "text": "Newsletter body as plain text",
+                "html": "<p>Newsletter body as HTML</p>"
+            }}),
+         "missing title"),
+        (
+            serde_json::json!({"title":"Newsletter!"}),
+            "missing content",
+            ),
+
+    ];
+    // Act
+    for (invalid_body, error_message) in test_cases {
+        let response = app.publish_newsletter(invalid_body).await;
+
+        // Assert
+        assert_eq!(
+            400,
+            response.status().as_u16(),
+            "The API didn't fail with 400 BAD Request when the payload was {}",
+            error_message
+        )
+    }
+}
+async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
 
     let _mock_guard = Mock::given(path("/email"))
