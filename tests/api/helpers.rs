@@ -1,11 +1,11 @@
 use once_cell::sync::Lazy;
-use reqwest::{Request, Url};
+use reqwest::Url;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use wiremock::MockServer;
-use zero2prod_newsletter::startup::{get_connection_pool, Application};
+use zero2prod_newsletter::startup::{Application, get_connection_pool};
 use zero2prod_newsletter::{
-    configuration::{get_config, DatabaseSettings},
+    configuration::{DatabaseSettings, get_config},
     telemetry::{get_subscriber, init_subscriber},
 };
 
