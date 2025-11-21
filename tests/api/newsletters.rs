@@ -1,4 +1,4 @@
-use crate::helpers::{spawn_app, ConfirmationLinks, TestApp};
+use crate::helpers::{ConfirmationLinks, TestApp, spawn_app};
 use wiremock::matchers::{any, method, path};
 use wiremock::{Mock, ResponseTemplate};
 
@@ -15,13 +15,13 @@ async fn newsletter_is_not_delivered_to_unconfirmed_subscriber() {
         .await;
 
     let newsletter_request_body = serde_json::json!(
-        {
-            "title": "Newsletter title",
-            "content": {
-                "text": "Newsletter body as text",
-                "html": "<p>Newsletter body as HTML</p>"
-        }
-        });
+    {
+        "title": "Newsletter title",
+        "content": {
+            "text": "Newsletter body as text",
+            "html": "<p>Newsletter body as HTML</p>"
+    }
+    });
     let response = app.publish_newsletter(newsletter_request_body).await;
 
     assert_eq!(response.status().as_u16(), 200);
@@ -39,13 +39,13 @@ async fn newsletter_is_delivered_to_confirmed_subscriber() {
         .await;
 
     let newsletter_request_body = serde_json::json!(
-        {
-            "title": "Newsletter title",
-            "content": {
-                "text": "Newsletter body as text",
-                "html": "<p>Newsletter body as HTML</p>"
-        }
-        });
+    {
+        "title": "Newsletter title",
+        "content": {
+            "text": "Newsletter body as text",
+            "html": "<p>Newsletter body as HTML</p>"
+    }
+    });
 
     let response = app.publish_newsletter(newsletter_request_body).await;
 
@@ -58,17 +58,18 @@ async fn newsletter_returns_400_for_invalid_data() {
     let app = spawn_app().await;
 
     let test_cases = vec![
-        (serde_json::json!(
+        (
+            serde_json::json!(
             {"content": {
                 "text": "Newsletter body as plain text",
                 "html": "<p>Newsletter body as HTML</p>"
             }}),
-         "missing title"),
+            "missing title",
+        ),
         (
             serde_json::json!({"title":"Newsletter!"}),
             "missing content",
-            ),
-
+        ),
     ];
     // Act
     for (invalid_body, error_message) in test_cases {
@@ -83,6 +84,36 @@ async fn newsletter_returns_400_for_invalid_data() {
         )
     }
 }
+
+#[tokio::test]
+async fn requests_missing_authorization_are_rejected() {
+    // Arrange
+    let app = spawn_app().await;
+
+    // Act
+    let response = reqwest::Client::new()
+        .post(format!("{}/newsletters", app.address))
+        .json(&serde_json::json!(
+            {
+                "title": "Newsletter title",
+                "content": {
+                    "text": "Newsletter body as plain text",
+                    "html": "<p>Newsletter body as html</p"
+                }
+            }
+        ))
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    // Assert
+    assert_eq!(401, response.status().as_u16());
+    assert_eq!(
+        r#"Basic realm = "publish""#,
+        response.headers()["WWW-Authenticate"]
+    );
+}
+
 async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
 
@@ -111,7 +142,7 @@ async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
 }
 
 async fn create_confirmed_subscriber(app: &TestApp) {
-   let confirmation_link = create_unconfirmed_subscriber(app).await;
+    let confirmation_link = create_unconfirmed_subscriber(app).await;
 
     reqwest::get(confirmation_link.html)
         .await
